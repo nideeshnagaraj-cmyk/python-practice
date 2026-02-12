@@ -3,10 +3,10 @@ Continue=True
 while Continue:
     num1=float(input("Enter the number a: "))
     num2=float(input("Enter the number b: "))
-    print('''1.ADDITION(+)
-2.SUBTRACTION(-)
-3.MULTIPLICATION(*)
-4.DIVISION(/)''')
+    print('''1.ADDITION
+2.SUBTRACTION
+3.MULTIPLICATION
+4.DIVISION''')
     operator=input('Enter the operator symmbol: ')
     if '+'==operator:
         total=num1+num2
@@ -28,4 +28,5 @@ while Continue:
     opinion=input("Do you want to do another operation (yes/no): ").lower()
     if 'no'==opinion:
         Continue=False
+
 print("\t----Thank You----")
