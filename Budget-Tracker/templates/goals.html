@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Goals & Planning - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .goals-layout {
+        display: grid;
+        grid-template-columns: 1fr 2.5fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 900px) {
+        .goals-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: white;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .goals-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .goal-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .goal-card.achieved {
+        background: rgba(16, 185, 129, 0.05);
+        border-color: var(--secondary-color);
+    }
+
+    .goal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .goal-header h4 {
+        margin: 0;
+        font-size: 1.25rem;
+        color: white;
+    }
+
+    .goal-amounts {
+        text-align: right;
+    }
+
+    .progress-track {
+        height: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: var(--primary-color);
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+
+    .achieved .progress-fill {
+        background: var(--secondary-color);
+    }
+
+    .plan-box {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border-left: 3px solid var(--primary-color);
+    }
+
+    .achieved .plan-box {
+        border-left-color: var(--secondary-color);
+    }
+
+    .plan-stat {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .plan-stat:last-child {
+        margin-bottom: 0;
+    }
+
+    .update-form {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: auto;
+    }
+</style>
+
+<div class="container goals-layout">
+    <!-- Left Col: Create Goal -->
+    <div>
+        <div class="glass-panel" style="position: sticky; top: 100px;">
+            <h3 style="margin-bottom: 1.5rem;"><i class="ph-bold ph-rocket-launch"
+                    style="color: var(--primary-color);"></i> Create a Goal</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Dream big. We'll help you
+                build the step-by-step plan to get there.</p>
+
+            <form method="POST" action="{{ url_for('goals') }}">
+                <div class="form-group">
+                    <label>Goal Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g., New Car, Maldives Trip"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>Target Amount</label>
+                    <input type="number" name="target_amount" class="form-control" step="0.01" min="1"
+                        placeholder="{{ g_user.currency }}10,000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Already Saved</label>
+                    <input type="number" name="saved_amount" class="form-control" step="0.01" min="0" value="0"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>Target Date</label>
+                    <input type="date" name="target_date" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Create Goal Plan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Col: Goals List -->
+    <div>
+        <h3 style="margin-bottom: 1.5rem;">Your Financial Goals</h3>
+
+        <div class="goals-grid">
+            {% if goals %}
+            {% for g in goals %}
+            <div class="goal-card {% if g.achieved %}achieved{% endif %}">
+                <div class="goal-header">
+                    <div>
+                        <h4>{{ g.name }}</h4>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                            <i class="ph-bold ph-calendar-blank"></i> {{ g.target_date }}
+                        </div>
+                    </div>
+                    <div class="goal-amounts">
+                        <div style="font-size: 1.1rem; font-weight: 700;">{{ g_user.currency }}{{ "%.0f"|format(g.saved_amount) }} <span
+                                style="font-size: 0.9rem; color: var(--text-muted); font-weight: 400;">/ {{ g_user.currency }}{{
+                                "%.0f"|format(g.target_amount) }}</span></div>
+                        <div style="font-size: 0.85rem; color: var(--primary-color); font-weight: 600;">{{
+                            "%.1f"|format(g.percentage) }}%</div>
+                    </div>
+                </div>
+
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ g.percentage }}%;"></div>
+                </div>
+
+                {% if g.achieved %}
+                <div class="plan-box" style="text-align: center;">
+                    <i class="ph-fill ph-confetti"
+                        style="font-size: 2rem; color: var(--secondary-color); margin-bottom: 0.5rem;"></i>
+                    <h5 style="color: var(--secondary-color); margin: 0;">Goal Achieved!</h5>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">Incredible work hitting
+                        your target.</p>
+                </div>
+                {% else %}
+                <div class="plan-box">
+                    <h5 style="margin-bottom: 0.75rem; font-size: 0.95rem; color: white;">The Plan</h5>
+                    <div class="plan-stat">
+                        <span style="color: var(--text-muted);">Time remaining:</span>
+                        <span style="font-weight: 500;">{{ g.months_left }} months</span>
+                    </div>
+                    <div class="plan-stat">
+                        <span style="color: var(--text-muted);">Remaining amount:</span>
+                        <span style="font-weight: 500;">{{ g_user.currency }}{{ "%.2f"|format(g.remaining) }}</span>
+                    </div>
+                    <div class="plan-stat">
+                        <span style="color: var(--text-muted);">Required monthly savings:</span>
+                        <span
+                            style="font-weight: 600; color: {% if g.required_monthly > 1000 %}var(--warning-color){% else %}white{% endif %};">{{ g_user.currency }}{{
+                            "%.2f"|format(g.required_monthly) }}/mo</span>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('update_goal', goal_id=g.id) }}" class="update-form"
+                    style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: auto;">
+                    <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                        <input type="number" name="added_amount" class="form-control" step="0.01" min="1"
+                            placeholder="Add funds" required style="padding: 0.5rem; font-size: 0.9rem; flex-grow: 1;">
+                        <select name="fund_source" class="form-select"
+                            style="padding: 0.5rem; font-size: 0.9rem; width: auto; max-width: 140px;" required>
+                            <option value="balance" title="Logs as a general expense to reduce Remaining Balance">
+                                Balance</option>
+                            <option value="savings" title="Deducts directly from your Savings Wallet">Savings Wallet
+                            </option>
+                            <option value="other" title="Adds to goal without affecting your TrackFlow budget">External
+                                Source</option>
+                        </select>
+                        <button type="submit" class="btn btn-outline" style="padding: 0.5rem 1rem;"><i
+                                class="ph-bold ph-plus"></i></button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="glass-panel" style="text-align: center; padding: 4rem 2rem; grid-column: 1 / -1;">
+                <i class="ph-thin ph-rocket-launch"
+                    style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <h4>No Goals Set</h4>
+                <p style="color: var(--text-muted);">Start planning for your future by setting your first savings goal.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}TrackFlow - Master Your Finances{% endblock %}
+
+{% block content %}
+<style>
+    .hero {
+        text-align: center;
+        padding: 6rem 1rem;
+        margin-top: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Vibrant Background styling for Landing Page */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background:
+            radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.15), transparent 40%),
+            radial-gradient(circle at 85% 30%, rgba(167, 139, 250, 0.15), transparent 40%),
+            radial-gradient(circle at 50% 80%, rgba(52, 211, 153, 0.1), transparent 50%);
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(15, 23, 42, 0.4);
+        padding: 3rem;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero h1 {
+        font-size: 3.5rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.2;
+    }
+
+    .hero p {
+        font-size: 1.2rem;
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-top: 4rem;
+        margin-bottom: 4rem;
+    }
+
+    .feature-card {
+        text-align: left;
+        transition: transform 0.3s ease;
+        padding: 2.5rem 2rem;
+    }
+
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .feature-icon {
+        font-size: 2.5rem;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        padding: 1rem;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 12px;
+    }
+
+    .marketing-section {
+        margin: 6rem 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4rem;
+        align-items: center;
+    }
+
+    @media (max-width: 900px) {
+        .marketing-section {
+            grid-template-columns: 1fr;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+        }
+    }
+
+    .marketing-text h2 {
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+
+    .marketing-text p {
+        font-size: 1.1rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+        line-height: 1.8;
+    }
+
+    .marketing-image {
+        background: linear-gradient(45deg, rgba(15, 23, 42, 0.8), rgba(30, 41, 59, 0.8));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .marketing-image::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: url('data:image/svg+xml;utf8,<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><circle cx="2" cy="2" r="2" fill="rgba(255,255,255,0.05)"/></svg>');
+        z-index: 0;
+    }
+</style>
+
+<div class="container hero">
+    <div class="hero-content">
+        <h1>Master Your Money.<br>Design Your Life.</h1>
+        <p>Awareness is the first step toward financial freedom. Most people don't know where their money goes until
+            it's gone. TrackFlow helps you monitor every penny, set realistic goals, and build the wealth you deserve.
+        </p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('register') }}" class="btn btn-primary"
+                style="font-size: 1.1rem; padding: 1rem 2.5rem; border-radius: 30px;">Get Started For Free</a>
+            <a href="{{ url_for('guest_login') }}" class="btn btn-outline"
+                style="font-size: 1.1rem; padding: 1rem 2.5rem; border-radius: 30px;">Try Demo</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="marketing-section">
+        <div class="marketing-text">
+            <h2>Why you need a Budget Tracker</h2>
+            <p><strong>Stop living paycheck to paycheck.</strong> Studies show that people who actively track their
+                expenses save up to 20% more of their income. It isn't about restricting yourself; it's about making
+                conscious choices.</p>
+            <p>With TrackFlow, you get a premium, distraction-free environment to take inventory of your finances. You
+                can identify exactly which categories are draining your wallet, effortlessly project when you'll reach
+                your big savings goals, and build an Emergency Savings shield against life's uncertainties.</p>
+            <ul style="list-style: none; padding: 0; margin-top: 2rem;">
+                <li style="margin-bottom: 1rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                    <i class="ph-fill ph-check-circle" style="color: var(--secondary-color); font-size: 1.5rem;"></i>
+                    Zero intimidating spreadsheets
+                </li>
+                <li style="margin-bottom: 1rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                    <i class="ph-fill ph-check-circle" style="color: var(--secondary-color); font-size: 1.5rem;"></i>
+                    Deep historical analytics
+                </li>
+                <li style="margin-bottom: 1rem; color: white; display: flex; align-items: center; gap: 1rem;">
+                    <i class="ph-fill ph-check-circle" style="color: var(--secondary-color); font-size: 1.5rem;"></i>
+                    Completely private and secure
+                </li>
+            </ul>
+        </div>
+        <div class="marketing-image">
+            <div style="position: relative; z-index: 1;">
+                <div class="glass-panel" style="margin-bottom: 1rem; border-left: 4px solid var(--primary-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);"><i class="ph-fill ph-coffee"></i>
+                                Food & Dining</div>
+                            <div style="font-weight: bold; margin-top: 0.25rem;">Starbucks Coffee</div>
+                        </div>
+                        <div style="color: var(--danger-color); font-weight: bold;">-$5.50</div>
+                    </div>
+                </div>
+                <div class="glass-panel" style="margin-bottom: 1rem; border-left: 4px solid var(--secondary-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);"><i class="ph-fill ph-money"></i>
+                                Salary</div>
+                            <div style="font-weight: bold; margin-top: 0.25rem;">Monthly Paycheck</div>
+                        </div>
+                        <div style="color: var(--secondary-color); font-weight: bold;">+$4,200.00</div>
+                    </div>
+                </div>
+                <div class="glass-panel" style="border-left: 4px solid var(--primary-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);"><i
+                                    class="ph-fill ph-shopping-cart"></i> Grocery</div>
+                            <div style="font-weight: bold; margin-top: 0.25rem;">Whole Foods Market</div>
+                        </div>
+                        <div style="color: var(--danger-color); font-weight: bold;">-$142.30</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 style="text-align: center; margin-bottom: 1rem; font-size: 2.5rem;">Everything you need to succeed</h2>
+    <p style="text-align: center; color: var(--text-muted); max-width: 600px; margin: 0 auto;">Our toolkit is designed
+        by financial experts to provide exactly what you need to master your money.</p>
+
+    <div class="features-grid">
+        <div class="glass-panel feature-card">
+            <i class="ph-fill ph-chart-pie-slice feature-icon"></i>
+            <h3>Visual Analytics</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem; line-height: 1.6;">See exactly where your money goes
+                with beautiful, interactive charts. Understand your spending patterns at a glance with our Advanced
+                Activity tab.</p>
+        </div>
+        <div class="glass-panel feature-card">
+            <i class="ph-fill ph-target feature-icon"></i>
+            <h3>Goal Oriented</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem; line-height: 1.6;">Planning a trip or buying a home?
+                Set goals and we'll calculate exactly how much you need to save to hit your target date, giving you a
+                required monthly run-rate.</p>
+        </div>
+        <div class="glass-panel feature-card">
+            <i class="ph-fill ph-bell-ringing feature-icon"></i>
+            <h3>Smart Alerts</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5;">Never overspend again. Get
+                proactive notifications when you're approaching budget limits in any category.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

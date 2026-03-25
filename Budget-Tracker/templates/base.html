@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Expense Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Phosphor Icons for premium aesthetic -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                <i class="ph-fill ph-wallet"></i> TrackFlow
+            </a>
+            <div class="navbar-nav">
+                {% if 'user_id' in session %}
+                <a href="{{ url_for('dashboard') }}" class="nav-link">Dashboard</a>
+                <a href="{{ url_for('activity') }}" class="nav-link">Activity</a>
+                <a href="{{ url_for('expenses') }}" class="nav-link">Expenses</a>
+                <a href="{{ url_for('budgets') }}" class="nav-link">Budgets</a>
+                <a href="{{ url_for('goals') }}" class="nav-link">Goals</a>
+                <a href="{{ url_for('profile') }}" class="nav-link"
+                    style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0.75rem; background: rgba(255,255,255,0.05); border-radius: 20px;">
+                    <div
+                        style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 0.85rem;">
+                        {{ current_user['username'][0]|upper if current_user else 'U' }}
+                    </div>
+                    <span style="font-size: 0.9rem;">{{ current_user['username'] if current_user else 'Profile'
+                        }}</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-link" title="Logout"
+                    style="color: var(--danger-color); padding: 0.5rem;"><i class="ph-bold ph-sign-out"></i></a>
+                {% else %}
+                <a href="{{ url_for('index') }}" class="nav-link">Features</a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline">Log In</a>
+                <a href="{{ url_for('guest_login') }}" class="btn btn-primary">Start as Guest</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-container container" style="margin-top: 2rem;">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} glass-panel"
+                style="padding: 1rem; border-left: 4px solid var(--{{ category }}-color, #fff); margin-bottom: 1rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if 'user_id' in session %}
+    <!-- Floating AI Assistant -->
+    <div id="ai-assistant-toggle"
+        style="position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.8rem; cursor: pointer; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.5); z-index: 1000; transition: transform 0.3s ease;">
+        <i class="ph-fill ph-robot"></i>
+    </div>
+
+    <div id="ai-assistant-window" class="glass-panel"
+        style="position: fixed; bottom: 6rem; right: 2rem; width: 350px; height: 500px; display: none; flex-direction: column; z-index: 1000; padding: 0; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);">
+        <!-- Header -->
+        <div
+            style="padding: 1rem; background: rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div
+                    style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; color: white;">
+                    <i class="ph-bold ph-robot"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: white; font-size: 0.95rem;">TrackFlow AI</h4>
+                    <span style="font-size: 0.75rem; color: #10b981;">Online</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button id="ai-chat-clear" title="Clear Chat History"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0.2rem; transition: color 0.2s;"><i
+                        class="ph-bold ph-trash"></i></button>
+                <button id="ai-assistant-close"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; padding: 0.2rem;"><i
+                        class="ph-bold ph-x"></i></button>
+            </div>
+        </div>
+
+        <!-- Chat Log -->
+        <div id="ai-chat-log"
+            style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div
+                style="align-self: flex-start; background: rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 12px; border-top-left-radius: 2px; max-width: 85%; color: white; font-size: 0.9rem; line-height: 1.4;">
+                Hi {{ current_user['username'] if current_user else 'there' }}! I am your personal TrackFlow assistant.
+                Is there anything confusing you about how budgets, goals, or your Activity ledger work?
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div
+            style="padding: 1rem; background: rgba(0,0,0,0.2); border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 0.5rem;">
+            <input type="text" id="ai-chat-input" placeholder="Ask me anything..."
+                style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; outline: none; font-size: 0.9rem;">
+            <button id="ai-chat-send"
+                style="width: 40px; border-radius: 8px; background: var(--primary-color); border: none; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s ease;">
+                <i class="ph-bold ph-paper-plane-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('ai-assistant-toggle');
+            if (!toggleBtn) return;
+
+            const chatWindow = document.getElementById('ai-assistant-window');
+            const closeBtn = document.getElementById('ai-assistant-close');
+            const chatLog = document.getElementById('ai-chat-log');
+            const chatInput = document.getElementById('ai-chat-input');
+            const sendBtn = document.getElementById('ai-chat-send');
+
+            // Toggle logic
+            toggleBtn.addEventListener('click', () => {
+                const isHidden = chatWindow.style.display === 'none';
+                chatWindow.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden) {
+                    toggleBtn.style.transform = 'scale(0.8)';
+                    chatInput.focus();
+                } else {
+                    toggleBtn.style.transform = 'scale(1)';
+                }
+            });
+
+            closeBtn.addEventListener('click', () => {
+                chatWindow.style.display = 'none';
+                toggleBtn.style.transform = 'scale(1)';
+            });
+
+            const clearBtn = document.getElementById('ai-chat-clear');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', async () => {
+                    try {
+                        await fetch('/api/chat/reset', { method: 'POST' });
+                        chatLog.innerHTML = `
+                            <div style="align-self: flex-start; background: rgba(255,255,255,0.1); padding: 0.75rem 1rem; border-radius: 12px; border-top-left-radius: 2px; max-width: 85%; color: white; font-size: 0.9rem; line-height: 1.4;">
+                                Hi {{ current_user['username'] if current_user else 'there' }}! I am your personal TrackFlow assistant. Is there anything confusing you about how budgets, goals, or your Activity ledger work?
+                            </div>
+                        `;
+                    } catch (err) {
+                        console.error('Failed to clear chat', err);
+                    }
+                });
+            }
+
+            // Chat logic
+            const appendMessage = (text, sender) => {
+                const msgDiv = document.createElement('div');
+                msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+                msgDiv.style.padding = '0.75rem 1rem';
+                msgDiv.style.borderRadius = '12px';
+                msgDiv.style.maxWidth = '85%';
+                msgDiv.style.color = 'white';
+                msgDiv.style.fontSize = '0.9rem';
+                msgDiv.style.lineHeight = '1.4';
+
+                if (sender === 'user') {
+                    msgDiv.style.background = 'var(--primary-color)';
+                    msgDiv.style.borderTopRightRadius = '2px';
+                } else {
+                    msgDiv.style.background = 'rgba(255,255,255,0.1)';
+                    msgDiv.style.borderTopLeftRadius = '2px';
+                }
+
+                // Extremely basic parsing for italics/bold purely for visual polish if model returns it
+                let parsedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                parsedText = parsedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+                msgDiv.innerHTML = parsedText;
+                chatLog.appendChild(msgDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            };
+
+            const sendMessage = async () => {
+                const text = chatInput.value.trim();
+                if (!text) return;
+
+                appendMessage(text, 'user');
+                chatInput.value = '';
+                chatInput.disabled = true;
+                sendBtn.style.opacity = '0.5';
+
+                // Append loading dots
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'ai-loading';
+                loadingDiv.style.alignSelf = 'flex-start';
+                loadingDiv.style.padding = '0.75rem 1rem';
+                loadingDiv.style.color = 'var(--text-muted)';
+                loadingDiv.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Thinking...';
+                chatLog.appendChild(loadingDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ message: text })
+                    });
+
+                    const data = await response.json();
+                    const loadingEl = document.getElementById('ai-loading');
+                    if (loadingEl) loadingEl.remove();
+
+                    if (data.error) {
+                        appendMessage('Error: ' + data.error, 'bot');
+                    } else if (data.response) {
+                        appendMessage(data.response, 'bot');
+                    }
+
+                } catch (err) {
+                    const loadingEl = document.getElementById('ai-loading');
+                    if (loadingEl) loadingEl.remove();
+                    appendMessage('Network error communicating with the assistant.', 'bot');
+                } finally {
+                    chatInput.disabled = false;
+                    sendBtn.style.opacity = '1';
+                    chatInput.focus();
+                }
+            };
+
+            sendBtn.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>

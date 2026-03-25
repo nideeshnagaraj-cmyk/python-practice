@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Category Budgets - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .budgets-layout {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    @media (max-width: 900px) {
+        .budgets-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: white;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .form-select option {
+        background: var(--bg-color);
+        color: white;
+    }
+
+    .budget-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .budget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .budget-header h4 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .budget-amounts {
+        text-align: right;
+    }
+
+    .budget-amounts .spent {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .budget-amounts .limit {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .progress-track {
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+    }
+
+    .progress-safe {
+        background: var(--secondary-color);
+    }
+
+    .progress-warning {
+        background: var(--warning-color);
+    }
+
+    .progress-danger {
+        background: var(--danger-color);
+    }
+</style>
+
+<div class="container budgets-layout">
+    <!-- Left Col: Set Budget -->
+    <div>
+        <div class="glass-panel" style="position: sticky; top: 100px;">
+            <h3 style="margin-bottom: 1.5rem;"><i class="ph-bold ph-target" style="color: var(--primary-color);"></i>
+                Set Monthly Budget</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.9rem;">Allocate limits for
+                categories to receive alerts when you get close to overspending.</p>
+
+            <form method="POST" action="{{ url_for('budgets') }}">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select name="category" class="form-select" required>
+                        <option value="">Select Category...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Monthly Limit</label>
+                    <input type="number" name="monthly_limit" class="form-control" step="0.01" min="0"
+                        placeholder="{{ g_user.currency }}0.00" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Budget Limit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Col: Budget Progress -->
+    <div>
+        <h3 style="margin-bottom: 1.5rem;">Current Month Progress</h3>
+
+        {% if budgets %}
+        {% for b in budgets %}
+        <div class="budget-card {% if b.alert %}alert-danger{% endif %}"
+            style="{% if b.alert %}border-color: var(--danger-color); background: rgba(239, 68, 68, 0.05);{% endif %}">
+            <div class="budget-header">
+                <h4>{{ b.category }}</h4>
+                <div class="budget-amounts">
+                    <div class="spent">{{ g_user.currency }}{{ "%.2f"|format(b.spent) }}</div>
+                    <div class="limit">of {% if b.limit > 0 %}{{ g_user.currency }}{{ "%.2f"|format(b.limit) }}{% else %}No Limit{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% if b.limit > 0 %}
+            <div class="progress-track">
+                <div class="progress-fill {% if b.percentage >= 90 %}progress-danger{% elif b.percentage >= 75 %}progress-warning{% else %}progress-safe{% endif %}"
+                    style="width: {{ b.percentage }}%;"></div>
+            </div>
+            {% if b.alert %}
+            <div style="font-size: 0.85rem; color: var(--danger-color); margin-top: 0.5rem; font-weight: 500;">
+                <i class="ph-bold ph-warning"></i> Heads up! You have spent {{ "%.0f"|format(b.percentage) }}% of your
+                budget for {{ b.category }}.
+            </div>
+            {% elif b.percentage >= 75 %}
+            <div style="font-size: 0.85rem; color: var(--warning-color); margin-top: 0.5rem;">
+                <i class="ph-bold ph-info"></i> Approaching limit. Slow down spending in this category.
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="progress-track">
+                <div class="progress-fill progress-safe" style="width: 0%;"></div>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+                No budget limit set. Add one on the left to track progress.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="glass-panel" style="text-align: center; padding: 4rem 2rem;">
+            <i class="ph-thin ph-target" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h4>No Budgets or Spendings Yet</h4>
+            <p style="color: var(--text-muted);">Set a budget limit to start tracking your category progress, or add an
+                expense to see it here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

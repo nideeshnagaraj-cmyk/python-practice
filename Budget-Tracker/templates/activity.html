@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}Activity & Analytics - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 900px) {
+        .analytics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .stat-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .stat-card h4 {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .stat-card .amount {
+        font-size: 2rem;
+        font-weight: 700;
+        color: white;
+    }
+
+    .trend-indicator {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .trend-up {
+        color: var(--danger-color);
+    }
+
+    .trend-down {
+        color: var(--secondary-color);
+    }
+
+    .charts-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+        .charts-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-panel {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-height: 400px;
+    }
+
+    .chart-panel h3 {
+        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+        color: white;
+    }
+</style>
+
+<div class="container">
+    <h2 style="margin-top: 2rem;">Activity & Analytics</h2>
+    <p style="color: var(--text-muted);">Deep dive into your spending habits and historical trends.</p>
+
+    <div class="analytics-grid">
+        <div class="stat-card">
+            <h4>Average Weekly Spend</h4>
+            <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(avg_weekly) }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Based on all-time history
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h4>Average Monthly Spend</h4>
+            <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(avg_monthly) }}</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Based on all-time history
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h4>Vs Previous Month</h4>
+            <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(current_month_total) }}</div>
+
+            {% if percent_change > 0 %}
+            <div class="trend-indicator trend-up">
+                <i class="ph-bold ph-trend-up"></i> +{{ "%.1f"|format(percent_change) }}% vs last month ({{
+                g_user.currency }}{{
+                "%.2f"|format(prev_month_total) }})
+            </div>
+            {% elif percent_change < 0 %} <div class="trend-indicator trend-down">
+                <i class="ph-bold ph-trend-down"></i> {{ "%.1f"|format(percent_change) }}% vs last month ({{
+                g_user.currency }}{{
+                "%.2f"|format(prev_month_total) }})
+        </div>
+        {% else %}
+        <div class="trend-indicator" style="color: var(--text-muted);">
+            <i class="ph-bold ph-minus"></i> No change (or no previous data)
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="stat-card">
+        <h4>Top Spend Category</h4>
+        <div class="amount"
+            style="font-size: 1.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;"
+            title="{{ top_category }}">{{ top_category }}</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
+            {{ g_user.currency }}{{ "%.2f"|format(top_category_amount) }} total all-time
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="charts-container">
+    <!-- Replaces the missing Dashboard charts -->
+    <div class="chart-panel">
+        <h3>6-Month Spending Trend</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="monthlyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-panel">
+        <h3>This Month's Breakdown</h3>
+        {% if categories %}
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="analyticsPieChart"></canvas>
+        </div>
+        {% else %}
+        <div
+            style="height: 300px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-direction: column;">
+            <i class="ph-thin ph-chart-pie-slice" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <p>No expenses logged this month.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="glass-panel" style="margin-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0;">Comprehensive Ledger</h3>
+        <form method="GET" action="{{ url_for('activity') }}" style="display: flex; gap: 1rem; align-items: center;">
+            <label style="color: var(--text-muted); font-size: 0.9rem;">Filter by:</label>
+            <select name="type" class="form-select" onchange="this.form.submit()"
+                style="padding: 0.4rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 6px; color: white;">
+                <option value="all" {% if current_filter=='all' %}selected{% endif %}>All Transactions</option>
+                <option value="expense" {% if current_filter=='expense' %}selected{% endif %}>Expenses Only</option>
+                <option value="income" {% if current_filter=='income' %}selected{% endif %}>Incomes Only</option>
+                <option value="external" {% if current_filter=='external' %}selected{% endif %}>External Funds / Saving
+                    Transfers</option>
+            </select>
+        </form>
+    </div>
+
+    <div style="width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--glass-border);">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr
+                    style="background: rgba(255, 255, 255, 0.05); text-align: left; border-bottom: 1px solid var(--glass-border);">
+                    <th style="padding: 1rem; color: var(--text-muted); font-weight: 500;">Date</th>
+                    <th style="padding: 1rem; color: var(--text-muted); font-weight: 500;">Details</th>
+                    <th style="padding: 1rem; color: var(--text-muted); font-weight: 500;">Type</th>
+                    <th style="padding: 1rem; color: var(--text-muted); font-weight: 500; text-align: right;">Amount
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                    <td style="padding: 1rem; vertical-align: middle;">
+                        <span style="font-weight: 500;">{{ t['date'] }}</span>
+                    </td>
+                    <td style="padding: 1rem; vertical-align: middle;">
+                        <span style="font-weight: 500;">{{ t['category'] }}</span>
+                        {% if t['sub_category'] and t['sub_category'] != 'None' %}
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{
+                            t['sub_category'] }}</div>
+                        {% endif %}
+                        {% if t['notes'] %}
+                        <div
+                            style="font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 0.2rem; display: flex; align-items: center; gap: 0.2rem;">
+                            <i class="ph-bold ph-info"></i> {{ t['notes'] }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem; vertical-align: middle;">
+                        {% if t['category'] in ['External Funds', 'Goal Funding', 'Savings Transfer', 'Savings
+                        Withdrawal'] %}
+                        <span
+                            style="background: rgba(167, 139, 250, 0.2); color: #c4b5fd; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
+                            {% if t['category'] == 'External Funds' %}External Deposit{% else %}Internal Transfer{%
+                            endif %}
+                        </span>
+                        {% elif t['type'] == 'income' %}
+                        <span
+                            style="background: rgba(52, 211, 153, 0.2); color: #6ee7b7; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">Income
+                            Deposit</span>
+                        {% else %}
+                        <span
+                            style="background: rgba(248, 113, 113, 0.2); color: #fca5a5; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">Expense</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem; vertical-align: middle; text-align: right; font-weight: 600;">
+                        {% if t['type'] == 'income' %}
+                        <span style="color: var(--secondary-color);">+{{ g_user.currency }}{{ "%.2f"|format(t['amount'])
+                            }}</span>
+                        {% else %}
+                        <span>-{{ g_user.currency }}{{ "%.2f"|format(t['amount']) }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        No transactions found for this filter.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Safe parsing helper
+        function safelyParseJSON(jsonStr) {
+            try {
+                return JSON.parse(jsonStr);
+            } catch (e) {
+                console.warn('Failed parsing JSON:', e);
+                return null;
+            }
+        }
+
+        // Initialize 6-Month Bar Chart
+        const trendCtx = document.getElementById('monthlyTrendChart');
+        if (trendCtx) {
+            const monthsDataRaw = '{{ months_data | tojson | safe }}';
+            const parsedMonths = safelyParseJSON(monthsDataRaw);
+            const monthsData = parsedMonths ? parsedMonths : [];
+
+            new Chart(trendCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthsData.map(d => d.label),
+                    datasets: [{
+                        label: 'Total Spent',
+                        data: monthsData.map(d => d.total),
+                        backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                        borderColor: '#38bdf8',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return '{{ g_user.currency }}' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: monthsData.length > 0 ? (Math.max(...monthsData.map(d => d.total)) * 1.2 || 100) : 100,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                callback: function (value) {
+                                    return '{{ g_user.currency }}' + value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.5)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Pie Chart
+        const pieCtx = document.getElementById('analyticsPieChart');
+        if (pieCtx) {
+            const categoriesRaw = '{{ categories | tojson | safe }}';
+            const parsedCategories = safelyParseJSON(categoriesRaw);
+            const categories = parsedCategories ? parsedCategories : {};
+            const labels = Object.keys(categories);
+            const data = Object.values(categories);
+
+            // Generate distinct vibrant colors
+            const colors = [
+                '#38bdf8', '#34d399', '#fbbf24', '#f87171',
+                '#a78bfa', '#ec4899', '#4ade80', '#60a5fa'
+            ];
+
+            new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                padding: 20,
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

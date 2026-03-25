@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Onboarding - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .onboarding-container {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .section-block {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .section-block:last-child {
+        border-bottom: none;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: white;
+        font-family: inherit;
+        font-size: 1rem;
+        transition: all var(--transition-speed);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .form-select option {
+        background: var(--bg-color);
+        color: white;
+    }
+
+    .income-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px dashed var(--glass-border);
+    }
+
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--glass-border);
+    }
+
+    .alert-encouragement {
+        background: rgba(16, 185, 129, 0.1);
+        border-left: 4px solid var(--secondary-color);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        display: none;
+    }
+</style>
+
+<div class="container onboarding-container">
+    <div class="glass-panel">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Welcome to TrackFlow! Let's get you set up.</h2>
+
+        <form id="onboardingForm" method="POST" action="{{ url_for('onboarding') }}">
+
+            <!-- Step 1: Profile -->
+            <div class="section-block" id="step1">
+                <h3>Step 1: Your Profile</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Tell us a little bit about what you do.</p>
+
+                <div class="form-group">
+                    <label for="role">Work Details (Role)</label>
+                    <select id="role" name="role" class="form-select" required>
+                        <option value="">Select your role...</option>
+                        <option value="Student">Student</option>
+                        <option value="Employee">Employee (Salaried)</option>
+                        <option value="Businessman">Businessman / Self-Employed</option>
+                        <option value="Freelancer">Freelancer</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 2: Income Sources -->
+            <div class="section-block" id="step2">
+                <h3>Step 2: Income Sources</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Add all your sources of income so we can
+                    calculate your monthly budget.</p>
+
+                <div id="incomeSourcesContainer">
+                    <div class="income-row">
+                        <div>
+                            <label>Source Name</label>
+                            <input type="text" name="income_source[]" class="form-control"
+                                placeholder="e.g., Salary, Freelance" required>
+                        </div>
+                        <div>
+                            <label>Amount</label>
+                            <input type="number" name="income_amount[]" class="form-control income-amount-input"
+                                step="0.01" min="0" required>
+                        </div>
+                        <div>
+                            <label>Frequency</label>
+                            <select name="income_frequency[]" class="form-select" required>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Daily">Daily</option>
+                                <option value="Yearly">Yearly</option>
+                                <option value="One-time">One-time</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Next Date <i class="ph-bold ph-question"
+                                    title="The exact calendar date you expect to receive this income. For recurring income, this sets the active tracking start date. For one-time income, it determines which calendar month the funds are credited."
+                                    style="color: var(--text-muted); cursor: help;"></i></label>
+                            <input type="date" name="income_date[]" class="form-control" required>
+                        </div>
+                        <div style="padding-top: 1.5rem;">
+                            <button type="button" class="btn btn-outline" disabled
+                                style="padding: 0.5rem; border-color: transparent;"><i
+                                    class="ph-fill ph-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" id="addIncomeBtn" class="btn btn-outline" style="margin-top: 1rem;">
+                    <i class="ph-fill ph-plus-circle"></i> Add Another Income Source
+                </button>
+            </div>
+
+            <!-- Step 3: Savings Goals -->
+            <div class="section-block" id="step3">
+                <h3>Step 3: Savings Target</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">How much of your income do you want to save
+                    every month?</p>
+
+                <div class="form-group">
+                    <label for="savings_percentage">Target Savings Percentage (%)</label>
+                    <input type="number" id="savings_percentage" name="savings_percentage" class="form-control" min="0"
+                        max="100" value="20" required>
+                </div>
+
+                <div class="alert-encouragement" id="savingsEncouragement">
+                    <strong>Projection:</strong> Based on your estimated total monthly income of <span
+                        id="estTotalIncome" style="font-weight: bold; color: white;">{{ g_user.currency }}0</span>,
+                    saving <span id="displayPercent">20</span>% means you'll save <span id="estMonthlySavings"
+                        style="font-weight: bold; color: var(--secondary-color);">{{ g_user.currency }}0</span> every
+                    month.
+                    <br><br>
+                    <span id="savingsAdvice" style="font-style: italic;"></span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="wizard-actions">
+                <div style="flex-grow: 1;"></div>
+                <button type="submit" id="submitBtn" class="btn btn-primary">Save Setup</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set default date to today for the first income source
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.querySelector('input[name="income_date[]"]');
+        if (dateInput) dateInput.value = today;
+
+        // Initial setup for savings calculation
+        setTimeout(calculateSavings, 100);
+
+        // Add Income Source Logic
+        document.getElementById('addIncomeBtn').addEventListener('click', () => {
+            const container = document.getElementById('incomeSourcesContainer');
+            const row = document.createElement('div');
+            row.className = 'income-row';
+            row.innerHTML = `
+            <div>
+                <label>Source Name</label>
+                <input type="text" name="income_source[]" class="form-control" placeholder="e.g., Side Hustle" required>
+            </div>
+            <div>
+                <label>Amount</label>
+                <input type="number" name="income_amount[]" class="form-control income-amount-input" step="0.01" min="0" required>
+            </div>
+            <div>
+                <label>Frequency</label>
+                <select name="income_frequency[]" class="form-select" required>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Yearly">Yearly</option>
+                    <option value="One-time">One-time</option>
+                </select>
+            </div>
+            <div>
+                <label>Next Date <i class="ph-bold ph-question" title="The exact calendar date you expect to receive this income. For recurring income, this sets the active tracking start date. For one-time income, it determines which calendar month the funds are credited." style="color: var(--text-muted); cursor: help;"></i></label>
+                <input type="date" name="income_date[]" class="form-control" value="${today}" required>
+            </div>
+            <div style="padding-top: 1.5rem;">
+                <button type="button" class="btn btn-outline remove-income" style="padding: 0.5rem; border-color: var(--danger-color); color: var(--danger-color);">
+                    <i class="ph-fill ph-trash"></i>
+                </button>
+            </div>
+        `;
+            container.appendChild(row);
+
+            // Add event listener to new remove button
+            row.querySelector('.remove-income').addEventListener('click', function () {
+                container.removeChild(row);
+                calculateSavings();
+            });
+
+            // Add event listener to new amount input
+            row.querySelector('.income-amount-input').addEventListener('input', calculateSavings);
+            row.querySelector('select[name="income_frequency[]"]').addEventListener('change', calculateSavings);
+        });
+
+        // Real-time calculation logic
+        const savingsInput = document.getElementById('savings_percentage');
+        savingsInput.addEventListener('input', calculateSavings);
+
+        // Add event listeners to initial amount input
+        document.querySelectorAll('.income-amount-input, select[name="income_frequency[]"]').forEach(el => {
+            el.addEventListener('input', calculateSavings);
+            el.addEventListener('change', calculateSavings);
+        });
+
+        function calculateSavings() {
+
+
+            let totalMonthlyIncome = 0;
+
+            const rows = document.querySelectorAll('.income-row');
+            const now = new Date();
+            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            const weeksInMonth = daysInMonth / 7.0;
+
+            rows.forEach(row => {
+                const amountInput = row.querySelector('input[name="income_amount[]"]').value;
+                const freqInput = row.querySelector('select[name="income_frequency[]"]').value;
+
+                if (amountInput) {
+                    let amount = parseFloat(amountInput);
+                    if (freqInput === 'Weekly') amount *= weeksInMonth;
+                    else if (freqInput === 'Daily') amount *= daysInMonth;
+                    else if (freqInput === 'Yearly') amount /= 12;
+                    else if (freqInput === 'One-time') amount = amount;
+
+                    totalMonthlyIncome += amount;
+                }
+            });
+
+            const percentage = parseFloat(savingsInput.value) || 0;
+            const monthlySavings = totalMonthlyIncome * (percentage / 100);
+            const yearlySavings = monthlySavings * 12;
+
+            document.getElementById('estTotalIncome').innerText = '{{ g_user.currency }}' + totalMonthlyIncome.toFixed(2);
+            document.getElementById('displayPercent').innerText = percentage;
+            document.getElementById('estMonthlySavings').innerText = '{{ g_user.currency }}' + monthlySavings.toFixed(2);
+
+            const adviceEl = document.getElementById('savingsAdvice');
+            if (percentage < 10) {
+                adviceEl.innerText = `Consider saving a bit more! Even bumping to 15% would mean saving {{ g_user.currency }}${(totalMonthlyIncome * 0.15 * 12).toFixed(2)} a year. You will thank your future self!`;
+                adviceEl.style.color = 'var(--warning-color)';
+            } else if (percentage >= 10 && percentage < 25) {
+                adviceEl.innerText = `Solid plan! At this rate, you'll save {{ g_user.currency }}${yearlySavings.toFixed(2)} in a year. Consistency is key!`;
+                adviceEl.style.color = '#fff';
+            } else {
+                adviceEl.innerText = `Incredible! Saving {{ g_user.currency }}${yearlySavings.toFixed(2)} a year will fast-track your financial freedom!`;
+                adviceEl.style.color = 'var(--secondary-color)';
+            }
+
+            document.getElementById('savingsEncouragement').style.display = totalMonthlyIncome > 0 ? 'block' : 'none';
+        }
+    });
+</script>
+{% endblock %}

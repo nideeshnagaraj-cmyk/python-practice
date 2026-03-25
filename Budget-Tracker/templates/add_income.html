@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Add Income - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .income-container {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .form-control,
+    .form-select {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        color: white;
+        font-family: inherit;
+        font-size: 1rem;
+        transition: all var(--transition-speed);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .form-select option {
+        background: var(--bg-color);
+        color: white;
+    }
+
+    .income-row {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px dashed var(--glass-border);
+    }
+
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--glass-border);
+    }
+</style>
+
+<div class="container income-container">
+    <div class="glass-panel">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Add New Income Streams</h2>
+
+        <form method="POST" action="{{ url_for('add_income') }}">
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Add one or multiple sources of income. These
+                will be appended to your existing profile.</p>
+
+            <div id="incomeSourcesContainer">
+                <div class="income-row">
+                    <div>
+                        <label>Source Name</label>
+                        <input type="text" name="income_source[]" class="form-control"
+                            placeholder="e.g., Salary, Freelance" required>
+                    </div>
+                    <div>
+                        <label>Amount</label>
+                        <input type="number" name="income_amount[]" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div>
+                        <label>Frequency</label>
+                        <select name="income_frequency[]" class="form-select" required>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Yearly">Yearly</option>
+                            <option value="One-time">One-time</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Next Date <i class="ph-bold ph-question"
+                                title="The exact calendar date you expect to receive this income. For recurring income, this sets the active tracking start date. For one-time income, it determines which calendar month the funds are credited."
+                                style="color: var(--text-muted); cursor: help;"></i></label>
+                        <input type="date" name="income_date[]" class="form-control" required>
+                    </div>
+                    <div style="padding-top: 1.5rem;">
+                        <button type="button" class="btn btn-outline" disabled
+                            style="padding: 0.5rem; border-color: transparent;"><i
+                                class="ph-fill ph-trash"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" id="addIncomeBtn" class="btn btn-outline" style="margin-top: 1rem;">
+                <i class="ph-fill ph-plus-circle"></i> Add Another Income Source
+            </button>
+
+            <!-- Action Buttons -->
+            <div class="wizard-actions">
+                <a href="{{ url_for('profile') }}" class="btn btn-outline">Cancel</a>
+                <button type="submit" class="btn btn-primary">Save Incomes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set default date to today for the first income source
+        const today = new Date().toISOString().split('T')[0];
+        const dateInput = document.querySelector('input[name="income_date[]"]');
+        if (dateInput) dateInput.value = today;
+
+        // Add Income Source Logic
+        document.getElementById('addIncomeBtn').addEventListener('click', () => {
+            const container = document.getElementById('incomeSourcesContainer');
+            const row = document.createElement('div');
+            row.className = 'income-row';
+            row.innerHTML = `
+            <div>
+                <label>Source Name</label>
+                <input type="text" name="income_source[]" class="form-control" placeholder="e.g., Side Hustle" required>
+            </div>
+            <div>
+                <label>Amount</label>
+                <input type="number" name="income_amount[]" class="form-control" step="0.01" min="0" required>
+            </div>
+            <div>
+                <label>Frequency</label>
+                <select name="income_frequency[]" class="form-select" required>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Daily">Daily</option>
+                    <option value="Yearly">Yearly</option>
+                    <option value="One-time">One-time</option>
+                </select>
+            </div>
+            <div>
+                <label>Next Date <i class="ph-bold ph-question" title="The exact calendar date you expect to receive this income. For recurring income, this sets the active tracking start date. For one-time income, it determines which calendar month the funds are credited." style="color: var(--text-muted); cursor: help;"></i></label>
+                <input type="date" name="income_date[]" class="form-control" value="${today}" required>
+            </div>
+            <div style="padding-top: 1.5rem;">
+                <button type="button" class="btn btn-outline remove-income" style="padding: 0.5rem; border-color: var(--danger-color); color: var(--danger-color);">
+                    <i class="ph-fill ph-trash"></i>
+                </button>
+            </div>
+        `;
+            container.appendChild(row);
+
+            // Add event listener to new remove button
+            row.querySelector('.remove-income').addEventListener('click', function () {
+                this.closest('.income-row').remove();
+            });
+        });
+    });
+</script>
+{% endblock %}

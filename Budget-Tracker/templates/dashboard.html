@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - TrackFlow{% endblock %}
+
+{% block content %}
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-content h4 {
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-content .amount {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+        color: #fff;
+    }
+
+    .dashboard-main {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+        .dashboard-main {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .chart-container {
+        height: 350px;
+        position: relative;
+    }
+
+    .transaction-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .transaction-item:last-child {
+        border-bottom: none;
+    }
+
+    .transaction-details h5 {
+        margin: 0;
+        font-size: 1rem;
+        color: #fff;
+    }
+
+    .transaction-details p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .transaction-amount {
+        font-weight: 600;
+        color: var(--danger-color);
+    }
+
+    .alert-warning {
+        background: rgba(239, 68, 68, 0.1);
+        border-left: 4px solid var(--danger-color);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="container" style="margin-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Welcome back, <span style="color: var(--primary-color);">{{ user['username'] }}</span>!</h2>
+        <a href="{{ url_for('expenses') }}" class="btn btn-primary"><i class="ph-bold ph-plus"></i> Add Expense</a>
+    </div>
+
+    {% if budget_alert %}
+    <div class="alert-warning glass-panel">
+        <strong><i class="ph-bold ph-warning"></i> Alert:</strong> You have spent more than 80% of your estimated
+        monthly income! Consider saving aggressively for the rest of the month.
+    </div>
+    {% endif %}
+
+    <!-- AI Insights Widget -->
+    <div class="glass-panel"
+        style="margin-bottom: 2rem; background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%); border: 1px solid rgba(16, 185, 129, 0.2); position: relative; overflow: hidden;">
+        <div
+            style="position: absolute; top: -20px; right: -20px; font-size: 8rem; color: rgba(16, 185, 129, 0.05); pointer-events: none;">
+            <i class="ph-fill ph-sparkle"></i>
+        </div>
+
+        <h3
+            style="margin-top: 0; color: #10b981; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; margin-bottom: 1rem;">
+            <i class="ph-fill ph-magic-wand"></i> TrackFlow Intelligence
+        </h3>
+
+        <div id="ai-insight-box"
+            style="color: var(--text-muted); line-height: 1.6; font-size: 0.95rem; min-height: 60px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="ph-bold ph-spinner ph-spin"></i> Analyzing your monthly financial data...
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="glass-panel stat-card">
+            <div class="stat-icon" style="color: var(--secondary-color);">
+                <i class="ph-fill ph-wallet"></i>
+            </div>
+            <div class="stat-content">
+                <h4>Monthly Income</h4>
+                <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(total_income) }}</div>
+            </div>
+        </div>
+
+        <div class="glass-panel stat-card">
+            <div class="stat-icon" style="color: var(--danger-color);">
+                <i class="ph-fill ph-trend-down"></i>
+            </div>
+            <div class="stat-content">
+                <h4>Total Expenses</h4>
+                <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(total_expenses) }}</div>
+            </div>
+        </div>
+
+        <div class="glass-panel stat-card">
+            <div class="stat-icon" style="color: var(--primary-color);">
+                <i class="ph-fill ph-piggy-bank"></i>
+            </div>
+            <div class="stat-content">
+                <h4>Target Savings</h4>
+                <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(target_savings) }}</div>
+            </div>
+        </div>
+
+        <div class="glass-panel stat-card">
+            <div class="stat-icon"
+                style="color: {% if remaining_budget > 0 %}var(--secondary-color){% else %}var(--danger-color){% endif %};">
+                <i class="ph-fill ph-scales"></i>
+            </div>
+            <div class="stat-content">
+                <h4>Remaining Budget</h4>
+                <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(remaining_budget) }}</div>
+            </div>
+        </div>
+
+        <div class="glass-panel stat-card"
+            style="grid-column: 1 / -1; background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(59, 130, 246, 0.15) 100%); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="stat-icon" style="color: #fff; background: var(--primary-color);">
+                    <i class="ph-fill ph-vault"></i>
+                </div>
+                <div class="stat-content">
+                    <h4>Savings Wallet</h4>
+                    <div class="amount">{{ g_user.currency }}{{ "%.2f"|format(total_savings_wallet) }}</div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">Includes your monthly
+                        target savings. Add extra funds here.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ url_for('wallet_transfer') }}"
+                style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="number" name="amount" class="form-control" step="0.01" min="1"
+                    placeholder="{{ g_user.currency }} Amount" required style="width: 120px; padding: 0.5rem;">
+                <select name="fund_source" class="form-control"
+                    style="width: 140px; padding: 0.4rem; font-size: 0.9rem;" required>
+                    <option value="balance">From Balance</option>
+                    <option value="external">External Source</option>
+                </select>
+                <button type="submit" name="action" value="deposit" class="btn btn-outline"
+                    style="padding: 0.5rem 1rem;" title="Add money to Savings Wallet">Save</button>
+                <button type="submit" name="action" value="withdraw" class="btn btn-outline"
+                    style="padding: 0.5rem 1rem; border-color: var(--danger-color); color: var(--danger-color);"
+                    title="Move money from Savings back to Balance"
+                    onsubmit="return confirm('Withdraw from Savings Wallet?');">Use</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard-main">
+        <div class="glass-panel">
+            <h3 style="margin-bottom: 1.5rem;">Expenses by Category</h3>
+            {% if categories %}
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
+                <i class="ph-thin ph-chart-pie-slice" style="font-size: 4rem;"></i>
+                <p>No expenses recorded this month yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="glass-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;">Recent Activity</h3>
+                <a href="{{ url_for('expenses') }}" style="font-size: 0.9rem;">View All</a>
+            </div>
+
+            {% if recent_transactions %}
+            {% for exp in recent_transactions %}
+            <div class="transaction-item">
+                <div class="transaction-details">
+                    <h5>{{ exp['category'] }}</h5>
+                    <p style="margin-bottom: 0.2rem;">{{ exp['date'] }} {% if exp['sub_category'] %} - {{
+                        exp['sub_category'] }} {% endif %}</p>
+                    {% if exp['notes'] %}
+                    <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4);"><i class="ph-bold ph-info"></i> {{
+                        exp['notes'] }}</p>
+                    {% endif %}
+                </div>
+                <div class="transaction-amount" {% if exp['type']=='income' %}style="color: var(--secondary-color);" {%
+                    elif exp['category'] in ['External Funds', 'Goal Funding' , 'Savings Transfer'
+                    , 'Savings Withdrawal' ] %}style="color: #c4b5fd;" {% endif %}>
+                    {% if exp['type'] == 'income' %}+{% else %}-{% endif %}{{ g_user.currency }}{{
+                    "%.2f"|format(exp['amount']) }}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">
+                <p>No recent transactions.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if categories %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+
+        // Parse data injected from Flask via Jinja
+        const rawData = {{ categories | tojson | safe
+    }};
+    const labels = Object.keys(rawData);
+    const dataVals = Object.values(rawData);
+
+    // Generate beautiful custom colors for the chart
+    const colors = [
+        'rgba(59, 130, 246, 0.8)',   // Primary Blue
+        'rgba(16, 185, 129, 0.8)',   // Secondary Green
+        'rgba(245, 158, 11, 0.8)',   // Warning Yellow
+        'rgba(239, 68, 68, 0.8)',    // Danger Red
+        'rgba(168, 85, 247, 0.8)',   // Purple
+        'rgba(236, 72, 153, 0.8)',   // Pink
+        'rgba(6, 182, 212, 0.8)'     // Cyan
+    ];
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: dataVals,
+                backgroundColor: colors,
+                borderColor: 'rgba(15, 23, 42, 1)',
+                borderWidth: 2,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#f8fafc',
+                        font: { family: "'Inter', sans-serif", size: 14 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    borderWidth: 1,
+                    padding: 12,
+                    callbacks: {
+                        label: function (context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+});
+</script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Request Notification permission if not granted
+        if ("Notification" in window) {
+            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+
+            // Trigger native notification if budget_alert is active
+            {% if budget_alert %}
+            if (Notification.permission === "granted") {
+                // Check sessionStorage to prevent spamming notifications on every refresh
+                if (!sessionStorage.getItem('budget_notified')) {
+                    new Notification("TrackFlow Limit Alert", {
+                        body: "You have spent more than 80% of your estimated monthly income. Please review your budget.",
+                        icon: "https://cdn-icons-png.flaticon.com/512/5709/5709755.png"
+                    });
+                    sessionStorage.setItem('budget_notified', 'true');
+                }
+            }
+            {% endif %}
+        }
+
+        // AI Insights Fetcher
+        async function fetchInsights() {
+            const box = document.getElementById('ai-insight-box');
+            if (!box) return;
+            try {
+                const res = await fetch('/api/expense_insights');
+                const data = await res.json();
+
+                if (data.insight) {
+                    // Parse styling hooks for cleaner display
+                    let formattedText = data.insight.replace(/\*\*(.*?)\*\*/g, '<strong style="color: white;">$1</strong>');
+                    formattedText = formattedText.replace(/\n\*/g, '<br>•').replace(/^\*/, '•'); // Handle bullets
+
+                    box.innerHTML = formattedText;
+                    box.style.color = 'rgba(255,255,255,0.9)';
+                } else if (data.error) {
+                    box.innerHTML = `<span style="color: var(--danger-color);"><i class="ph-bold ph-warning"></i> Insight generation failed: ${data.error}</span>`;
+                }
+            } catch (e) {
+                box.innerHTML = `<span style="color: var(--danger-color);"><i class="ph-bold ph-warning"></i> Could not connect to intelligence server.</span>`;
+            }
+        }
+        fetchInsights();
+    });
+</script>
+{% endblock %}
